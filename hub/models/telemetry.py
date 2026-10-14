@@ -20,8 +20,11 @@ class TelemetryReading(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
+    # Part of the primary key: TimescaleDB refuses to build a hypertable when a
+    # unique index lacks the partitioning column
     time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
+        primary_key=True,
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
         index=True,

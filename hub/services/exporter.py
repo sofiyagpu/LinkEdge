@@ -5,8 +5,8 @@ Export service — two delivery mechanisms:
 2. WebSocket: broadcast live readings to currently connected browser/client sessions.
 
 The export worker runs on a configurable interval and retries pending rows.
-Readings stay in TimescaleDB with `export_status = 'pending'` until each
-configured target either succeeds or exhausts retries.
+Readings stay in TimescaleDB with `export_status = 'pending'` until every
+configured target accepts them, so nothing is lost while the backend is offline.
 """
 
 import asyncio
@@ -123,7 +123,9 @@ async def _flush_pending() -> None:
                     update(TelemetryReading)
                     .where(TelemetryReading.id == reading.id)
                     .values(
-                        export_status="synced" if all_ok else "failed",
+                        # ponytail: retries forever; a target that always rejects blocks the
+                        # queue — add a retry counter and a "failed" state if that happens
+                        export_status="synced" if all_ok else "pending",
                         exported_at=datetime.now(timezone.utc) if all_ok else None,
                         export_error=last_error,
                     )

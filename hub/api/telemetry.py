@@ -62,7 +62,9 @@ async def list_telemetry(
 
 @router.get("/{reading_id}", response_model=TelemetryReadingOut)
 async def get_reading(reading_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    row = await db.get(TelemetryReading, reading_id)
+    row = (
+        await db.execute(select(TelemetryReading).where(TelemetryReading.id == reading_id))
+    ).scalar_one_or_none()
     if row is None:
         raise HTTPException(status_code=404, detail="Reading not found")
     return TelemetryReadingOut.model_validate(row)
